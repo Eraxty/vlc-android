@@ -27,7 +27,13 @@ import org.videolan.vlc.gui.dialogs.adapters.VlcTrack
 import org.videolan.vlc.repository.EqualizerRepository
 import org.videolan.vlc.repository.SlaveRepository
 import kotlin.math.absoluteValue
-
+////////
+import kotlin.io.*               
+import java.io.File
+import android.os.Vibrator
+import android.os.VibrationEffect
+import android.os.Build
+//////
 class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.EventListener, CoroutineScope {
     override val coroutineContext = Dispatchers.Main.immediate + SupervisorJob()
 
@@ -37,7 +43,8 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
     val progress by lazy(LazyThreadSafetyMode.NONE) { MutableLiveData<Progress>().apply { value = Progress() } }
     val speed by lazy(LazyThreadSafetyMode.NONE) { MutableLiveData<Float>().apply { value = 1.0F } }
     private val slaveRepository by lazy { SlaveRepository.getInstance(context) }
-
+    @Volatile
+    private var vibrationManager: VibrationSubtitleManager? = null
     var mediaplayer = newMediaPlayer()
         private set
     var switchToVideo = false
@@ -71,6 +78,14 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
         setPlaybackStopped()
     }
 
+    private suspend fun readTextFromUri(uri: Uri): String? {
+        return try {
+            context.applicationContext.contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
     private fun releaseMedia() = mediaplayer.media?.let {
         it.setEventListener(null)
         it.release()
@@ -92,7 +107,22 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
             mediaplayer.play()
         }
     }
-
+    private fun setupVibrationManagerFromSrt(srtText: String) {
+        android.util.Log.d("VibeSubManager", "setupVibrationManagerFromSrt called")
+        val manager = VibrationSubtitleManager(
+            context = context.applicationContext,
+            getPlayerTimeMs = { try { mediaplayer.time } catch (e: Exception) { 0L } },
+            isPlaying = { try { mediaplayer.isPlaying } catch (e: Exception) { false } }
+        )
+        manager.loadSrtText(srtText)
+        android.util.Log.d("VibeSubManager", "SRT text loaded into vibration manager")
+    
+        // stop & replace previous manager
+        vibrationManager?.stop()
+        vibrationManager = manager
+        manager.start()
+    }
+    
     private fun resetPlaybackState(time: Long, duration: Long) {
         seekable = true
         pausable = true
@@ -168,10 +198,57 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
 
     fun setVideoTrackEnabled(enabled: Boolean) = mediaplayer.setVideoTrackEnabled(enabled)
 
-    fun addSubtitleTrack(path: String, select: Boolean) = mediaplayer.addSlave(IMedia.Slave.Type.Subtitle, path, select)
-
-    fun addSubtitleTrack(uri: Uri, select: Boolean) = mediaplayer.addSlave(IMedia.Slave.Type.Subtitle, uri, select)
-
+    fun addSubtitleTrack(path: String, select: Boolean) {
+        
+        launch {
+        val srtText: String? = withContext(Dispatchers.IO) {
+            try {
+                when {
+                    path.startsWith("content://") || path.startsWith("file://") -> {
+                        val uri = Uri.parse(path)
+                        readTextFromUri(uri)
+                    }
+                    else -> {
+                       
+                        val file = File(path)
+                        if (file.exists()) file.readText() else null
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+            srtText?.let { setupVibrationManagerFromSrt(it) }
+    
+            try {
+                mediaplayer.addSlave(IMedia.Slave.Type.Subtitle, path, select)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    fun addSubtitleTrack(uri: Uri, select: Boolean) {
+        launch {
+            val srtText: String? = withContext(Dispatchers.IO) {
+                try {
+                    readTextFromUri(uri)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+            }
+    
+            srtText?.let { setupVibrationManagerFromSrt(it) }
+    
+            try {
+                mediaplayer.addSlave(IMedia.Slave.Type.Subtitle, uri, select)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
     fun getSpuTracks(): Array<out VlcTrack>? = mediaplayer.getAllSpuTracks()
 
     fun getSpuTrack() = mediaplayer.getSelectedSpuTrack()?.getId() ?: "-1"
