@@ -534,6 +534,11 @@ data class VibCue(
                 
             }
             cues.sortBy { it.startMs }
+
+            android.util.Log.d(
+                "VibeSubManager",
+                "Loaded ${cues.size} vibration cues"
+            )
         }
     }
 
@@ -636,7 +641,7 @@ data class VibCue(
             if (switched) {
                 cancelActiveVibration()
                 activeCue = cue
-                startVibrationForCue(cue, time)
+                startVibrationForCue(cue)
                 onNeedUiUpdate?.invoke()
             }
          

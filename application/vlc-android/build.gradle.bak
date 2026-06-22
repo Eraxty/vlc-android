@@ -235,9 +235,12 @@ dependencies {
 
 static def buildTime(project) {
     if (project.hasProperty('forceDeterministic')) {
-        return project.providers.exec {
+        def code = new ByteArrayOutputStream()
+        project.exec {
             commandLine 'git', 'show', '--no-patch', '--format=%cd' , '--date=format-local:%Y-%m-%d'
-        }.standardOutput.asText.get().trim()
+            standardOutput = code
+        }
+        return code.toString()
     }
     return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
 }
@@ -253,9 +256,12 @@ static def hostName(project) {
 }
 
 def revision() {
-    return providers.exec {
+    def code = new ByteArrayOutputStream()
+    exec {
         commandLine 'git', 'rev-parse', '--short', 'HEAD'
-    }.standardOutput.asText.get().trim()
+        standardOutput = code
+    }
+    return code.toString()
 }
 
 def dav1dVersion() {
