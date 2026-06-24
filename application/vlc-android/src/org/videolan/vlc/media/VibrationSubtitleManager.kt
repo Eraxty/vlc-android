@@ -117,6 +117,30 @@ class VibrationSubtitleManager(
         POWER_UP,
         POWER_DOWN,
         BATTERY_LOW,
+        // Legacy tags (inbuilt functions to improve)
+        CINEMATIC_SWELL,
+        EMOTIONAL_SWELL,
+        AFTERMATH,
+        AFTERMATH_DEBRIS,
+        COLLAPSE,
+        TICKING,
+        JUMPSCARE_LEGACY,
+        TENSION_BUILD,
+        GUNSHOT,
+        EXPLOSION_LEGACY,
+        RUMBLE,
+        SHOCKWAVE_LEGACY,
+        HEARTBEAT_LEGACY,
+        FOOTSTEP_LEGACY,
+        WHOOSH,
+        BASS_DROP,
+        SILENCE_LEGACY,
+        HEAVYFOOTSTEP,
+        TENSIONPULSE,
+        METALLIC_HIT,
+        ACCELERATION,
+        POWERLOSS,
+        DISTANT_THUNDER
 
         // Silence / System
         SILENCE
