@@ -508,7 +508,7 @@ data class VibCue(
             val stereoRegex = Regex("""^(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(?<end>\d{2}:\d{2}:\d{2},\d{3})(?:\s+(?<tag>[A-Z_]+)(?:\s+(?<params>(?:-?\d+(?:\.\d+)?)(?:\s*,\s*-?\d+(?:\.\d+)?){0,3}))?)?$""")
             for (line in lines) {
          
-                val stereoMatch = stereoRegex.matchEntire(line)
+                val stereoMatch = stereoRegex.matchEntire(line.trim())
                 if (stereoMatch != null ) {
                     val startMs = parseSrtTime(stereoMatch.groupValues[1])
                     val endMs = parseSrtTime(stereoMatch.groupValues[2])
