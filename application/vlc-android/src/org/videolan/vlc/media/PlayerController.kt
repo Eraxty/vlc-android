@@ -107,6 +107,7 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
             mediaplayer.play()
         }
     }
+
     private fun setupVibrationManagerFromSrt(srtText: String) {
         android.util.Log.d("VibeSubManager", "setupVibrationManagerFromSrt called")
         val manager = VibrationSubtitleManager(
@@ -114,13 +115,53 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
             getPlayerTimeMs = { try { mediaplayer.time } catch (e: Exception) { 0L } },
             isPlaying = { try { mediaplayer.isPlaying } catch (e: Exception) { false } }
         )
+        android.util.Log.d("VibeDebug", "Vibration manager created")
         manager.loadSrtText(srtText)
-        android.util.Log.d("VibeSubManager", "SRT text loaded into vibration manager")
+        android.util.Log.d("VibeDebug", "SRT loaded")
     
         // stop & replace previous manager
         vibrationManager?.stop()
         vibrationManager = manager
         manager.start()
+    }
+
+    private fun loadVibrationFromUri(uri: Uri) {
+        launch {
+            android.util.Log.d("VibeSubManager", "loadVibrationFromUri called with uri: $uri")
+            val srtText: String? = withContext(Dispatchers.IO) {
+                try {
+                    readTextFromUri(uri)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+            }
+            srtText?.let { setupVibrationManagerFromSrt(it) }
+        }
+    }
+
+    private fun loadVibrationFromPath(path: String) {
+        launch {
+            android.util.Log.d("VibeSubManager", "loadVibrationFromPath called with path: $path")
+            val srtText: String? = withContext(Dispatchers.IO) {
+                try {
+                    when {
+                        path.startsWith("content://") || path.startsWith("file://") -> {
+                            val uri = Uri.parse(path)
+                            readTextFromUri(uri)
+                        }
+                        else -> {
+                            val file = File(path)
+                            if (file.exists()) file.readText() else null
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+            }
+            srtText?.let { setupVibrationManagerFromSrt(it) }
+        }
     }
     
     private fun resetPlaybackState(time: Long, duration: Long) {
@@ -199,26 +240,25 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
     fun setVideoTrackEnabled(enabled: Boolean) = mediaplayer.setVideoTrackEnabled(enabled)
 
     fun addSubtitleTrack(path: String, select: Boolean) {
-        
+        android.util.Log.d("VibeSubManager", "addSubtitleTrack(path = $path, select = $select) called")
         launch {
-        val srtText: String? = withContext(Dispatchers.IO) {
-            try {
-                when {
-                    path.startsWith("content://") || path.startsWith("file://") -> {
-                        val uri = Uri.parse(path)
-                        readTextFromUri(uri)
+            val srtText: String? = withContext(Dispatchers.IO) {
+                try {
+                    when {
+                        path.startsWith("content://") || path.startsWith("file://") -> {
+                            val uri = Uri.parse(path)
+                            readTextFromUri(uri)
+                        }
+                        else -> {
+                            val file = File(path)
+                            if (file.exists()) file.readText() else null
+                        }
                     }
-                    else -> {
-                       
-                        val file = File(path)
-                        if (file.exists()) file.readText() else null
-                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
             }
-        }
             srtText?.let { setupVibrationManagerFromSrt(it) }
     
             try {
@@ -230,6 +270,7 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
     }
     
     fun addSubtitleTrack(uri: Uri, select: Boolean) {
+        android.util.Log.d("VibeSubManager", "addSubtitleTrack(uri = $uri, select = $select) called")
         launch {
             val srtText: String? = withContext(Dispatchers.IO) {
                 try {
@@ -294,10 +335,33 @@ class PlayerController(val context: Context) : IVLCVout.Callback, MediaPlayer.Ev
     fun setSlaves(media: IMedia, mw: MediaWrapper) = launch {
         if (mediaplayer.isReleased) return@launch
         val slaves = mw.slaves
-        slaves?.let { it.forEach { slave -> media.addSlave(slave) } }
+        android.util.Log.d("VibeSubManager", "setSlaves called for ${mw.location}, slaves count: ${slaves?.size ?: 0}")
+        slaves?.let {
+            it.forEach { slave ->
+                if (slave.type == IMedia.Slave.Type.Subtitle && !slave.uri.isNullOrEmpty()) {
+                    android.util.Log.d("VibeSubManager", "setSlaves: Auto-loading subtitle vibration from slave URI: ${slave.uri}")
+                    try {
+                        loadVibrationFromUri(Uri.parse(slave.uri))
+                    } catch (e: Exception) {
+                        loadVibrationFromPath(slave.uri)
+                    }
+                }
+                media.addSlave(slave)
+            }
+        }
         media.release()
         slaveRepository.getSlaves(mw.location).forEach { slave ->
-            if (!slaves.contains(slave)) mediaplayer.addSlave(slave.type, slave.uri.toUri(), false)
+            if (!slaves.contains(slave)) {
+                if (slave.type == IMedia.Slave.Type.Subtitle && !slave.uri.isNullOrEmpty()) {
+                    android.util.Log.d("VibeSubManager", "setSlaves: Auto-loading subtitle vibration from repository slave URI: ${slave.uri}")
+                    try {
+                        loadVibrationFromUri(Uri.parse(slave.uri))
+                    } catch (e: Exception) {
+                        loadVibrationFromPath(slave.uri)
+                    }
+                }
+                mediaplayer.addSlave(slave.type, slave.uri.toUri(), false)
+            }
         }
         slaves?.let { slaveRepository.saveSlaves(mw) }
     }

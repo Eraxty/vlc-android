@@ -81,395 +81,399 @@ data class VibCue(
 
 
     
-///////////////////////////////// libs for vibration templates/////////////////
+    private fun isCompositionSupported(vararg primitives: Int): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        return try {
+            vibrator.areAllPrimitivesSupported(*primitives)
+        } catch (e: Throwable) {
+            false
+        }
+    }
+
+    private fun fallbackVibrate(durationMs: Long, intensity: Float) {
+        android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+        val amplitude = (intensity.coerceIn(0f, 1f) * 255).roundToInt().coerceIn(1, 255)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
+        } else {
+            vibrator.vibrate(durationMs)
+        }
+    }
+
     fun cinematicSwell(
-    vibrator: Vibrator,
-    riseIntensity: Float = 0.6f,
-    peakIntensity: Float = 0.8f,
-    fallIntensity: Float = 0.4f,
-    peakDelayMs: Int = 60
+        vibrator: Vibrator,
+        riseIntensity: Float = 0.6f,
+        peakIntensity: Float = 0.8f,
+        fallIntensity: Float = 0.4f,
+        peakDelayMs: Int = 60
     ) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                riseIntensity
-            )
-            .addPrimitive(
                 VibrationEffect.Composition.PRIMITIVE_SPIN,
-                peakIntensity,
-                peakDelayMs
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, riseIntensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, peakIntensity, peakDelayMs)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, fallIntensity, 40)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                fallIntensity,
-                40
-            )
-            .compose()
-        )
+        } else {
+            fallbackVibrate(200, peakIntensity)
+        }
     }
 
     fun emotionalSwell(vibrator: Vibrator, intensity: Float = 0.5f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                intensity * 0.6f
-            )
-            .addPrimitive(
                 VibrationEffect.Composition.PRIMITIVE_SPIN,
-                intensity,
-                120
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, intensity * 0.6f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, intensity, 120)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, intensity * 0.2f, 150)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                intensity * 0.2f,
-                150
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, intensity)
+        }
     }
 
-
     fun aftermath(vibrator: Vibrator) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                0.2f,
-                200
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && isCompositionSupported(
+                VibrationEffect.Composition.PRIMITIVE_TICK
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.2f, 200)
+                    .compose()
             )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(100, 0.2f)
+        }
     }
 
     fun aftermathDebris(vibrator: Vibrator) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                0.3f
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && isCompositionSupported(
+                VibrationEffect.Composition.PRIMITIVE_TICK
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.3f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.2f, 120)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                0.2f,
-                120
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(150, 0.3f)
+        }
     }
 
-
     fun heartbeat(vibrator: Vibrator, intensity: Float) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_THUD,
-                intensity
+                VibrationEffect.Composition.PRIMITIVE_TICK
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, intensity * 0.5f, 120)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                intensity * 0.5f,
-                120
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(150, intensity)
+        }
     }
 
     fun collapse(vibrator: Vibrator) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_THUD,
-                0.8f
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, 0.8f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, 0.6f, 60)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, 0.5f, 120)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_THUD,
-                0.6f,
-                60
-            )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                0.5f,
-                120
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, 0.8f)
+        }
     }
 
     fun ticking(vibrator: Vibrator, intensity: Float = 0.4f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                intensity
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && isCompositionSupported(
+                VibrationEffect.Composition.PRIMITIVE_TICK
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, intensity)
+                    .compose()
             )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(50, intensity)
+        }
     }
 
     fun whoosh(vibrator: Vibrator, intensity: Float = 0.6f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-
-    val i = intensity.coerceIn(0.3f, 0.8f)
-
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        val i = intensity.coerceIn(0.3f, 0.8f)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                i * 0.7f
-            )
-            .addPrimitive(
                 VibrationEffect.Composition.PRIMITIVE_SPIN,
-                i,
-                30
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, i * 0.7f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, i, 30)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, i * 0.5f, 40)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                i * 0.5f,
-                40
-            )
-            .compose()
-    )
-}
-
+        } else {
+            fallbackVibrate(150, i)
+        }
+    }
 
     fun jumpScare(vibrator: Vibrator) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                1f
+                VibrationEffect.Composition.PRIMITIVE_CLICK
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, 1f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, 0.8f, 10)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_CLICK,
-                0.8f,
-                10
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(100, 1.0f)
+        }
     }
 
     fun tensionBuild(vibrator: Vibrator, intensity: Float) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                intensity
+                VibrationEffect.Composition.PRIMITIVE_SPIN
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, intensity * 0.6f, 30)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_SPIN,
-                intensity * 0.6f,
-                30
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, intensity)
+        }
     }
 
     fun rumble(vibrator: Vibrator, intensity: Float) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_SPIN,
-                intensity.coerceIn(0.3f, 0.7f)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
+                VibrationEffect.Composition.PRIMITIVE_SPIN
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, intensity.coerceIn(0.3f, 0.7f))
+                    .compose()
             )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(150, intensity)
+        }
     }
 
     fun gunshot(vibrator: Vibrator, intensity: Float = 0.9f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_CLICK,
-                0.8f
+                VibrationEffect.Composition.PRIMITIVE_THUD
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, 0.8f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, intensity, 10)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_THUD,
-                intensity,
-                10
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(80, intensity)
+        }
     }
 
     fun explosion(vibrator: Vibrator, intensity: Float = 1f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_THUD,
-                intensity
-            )
-            .addPrimitive(
                 VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                0.7f,
-                20
+                VibrationEffect.Composition.PRIMITIVE_TICK
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, 0.7f, 20)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.5f, 80)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                0.5f,
-                80
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(250, intensity)
+        }
     }
 
     fun shockwave(vibrator: Vibrator, intensity: Float = 0.7f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                intensity * 0.8f
-            )
-            .addPrimitive(
                 VibrationEffect.Composition.PRIMITIVE_SPIN,
-                intensity,
-                50
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, intensity * 0.8f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, intensity, 50)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, intensity * 0.4f, 60)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                intensity * 0.4f,
-                60
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, intensity)
+        }
     }
 
     fun bassDrop(vibrator: Vibrator, intensity: Float = 1f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_THUD,
-                intensity
+                VibrationEffect.Composition.PRIMITIVE_SPIN
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, intensity * 0.7f, 40)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_SPIN,
-                intensity * 0.7f,
-                40
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, intensity)
+        }
     }
+
     fun heavyFootstep(vibrator: Vibrator, intensity: Float = 0.8f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_THUD,
-                intensity
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, intensity * 0.5f, 40)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                intensity * 0.5f,
-                40
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(80, intensity)
+        }
     }
+
     fun tensionPulse(vibrator: Vibrator, intensity: Float = 0.6f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                intensity * 0.7f
+                VibrationEffect.Composition.PRIMITIVE_THUD
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, intensity * 0.7f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, intensity, 80)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_THUD,
-                intensity,
-                80
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, intensity)
+        }
     }
 
     fun metallicHit(vibrator: Vibrator, intensity: Float = 0.7f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_CLICK,
-                intensity
+                VibrationEffect.Composition.PRIMITIVE_TICK
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, intensity * 0.6f, 30)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_TICK,
-                intensity * 0.6f,
-                30
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(80, intensity)
+        }
     }
+
     fun acceleration(vibrator: Vibrator, intensity: Float = 0.7f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                intensity * 0.6f
+                VibrationEffect.Composition.PRIMITIVE_SPIN
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, intensity * 0.6f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, intensity, 100)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_SPIN,
-                intensity,
-                100
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, intensity)
+        }
     }
 
     fun powerLoss(vibrator: Vibrator, intensity: Float = 0.6f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SPIN,
-                intensity
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, intensity * 0.5f, 30)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                intensity * 0.5f,
-                30
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(150, intensity)
+        }
     }
 
     fun distantThunder(vibrator: Vibrator, intensity: Float = 0.4f) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-    vibrator.vibrate(
-        VibrationEffect.startComposition()
-            .addPrimitive(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isCompositionSupported(
                 VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
-                intensity
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )) {
+            android.util.Log.d("VibeDebug", "Vibrator.vibrate invoked")
+            vibrator.vibrate(
+                VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, intensity)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, intensity * 0.3f, 120)
+                    .compose()
             )
-            .addPrimitive(
-                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL,
-                intensity * 0.3f,
-                120
-            )
-            .compose()
-    )
+        } else {
+            fallbackVibrate(200, intensity)
+        }
     }
 
-///////////////////////////// /////
+    //
 
 
 
 
-    fun loadSrtText(srtText: String) {
+    fun loadSrtText(srtText: String, path: String = "Unknown") {
         synchronized(cues) {
             cues.clear()
             val lines = srtText.lines()
@@ -478,9 +482,8 @@ data class VibCue(
      
             while (idx < lines.size && lines[idx].isBlank()) idx++
 
-            var vibEnabled = false
+            var vibEnabled = true
 
-      
             while (idx < lines.size && lines[idx].trim().startsWith("//")) {
                 val header = lines[idx].trim().removePrefix("//").trim()
                 android.util.Log.d("VibeSubManager", "Found header: $header")
@@ -496,7 +499,6 @@ data class VibCue(
 
             if (!vibEnabled) {
                 android.util.Log.d("VibeSubManager", "Vibration not enabled in SRT, skipping")
-         
                 return
             }
             
@@ -510,22 +512,26 @@ data class VibCue(
                 if (stereoMatch != null ) {
                     val startMs = parseSrtTime(stereoMatch.groupValues[1])
                     val endMs = parseSrtTime(stereoMatch.groupValues[2])
-                    val tags = stereoMatch.groupValues[3].takeIf { it.isNotEmpty() }?.toIntOrNull() ?: "SILENCE"
-                    val tagStr = stereoMatch.groupValues[3]
-                                .takeIf { it.isNotEmpty() }
+                    val tagStr = stereoMatch.groups["tag"]?.value
+                                ?.takeIf { it.isNotEmpty() }
                                 ?: "SILENCE"
                     val params = stereoMatch.groups["params"]
                                     ?.value
                                     ?.split(',')
-                                    ?.map { it.trim().toFloat() }
+                                    ?.mapNotNull { it.trim().toFloatOrNull() }
                                     ?: emptyList()
                     
+                    val tag = try {
+                        VibTag.valueOf(tagStr)
+                    } catch (e: IllegalArgumentException) {
+                        VibTag.SILENCE
+                    }
                     
                     if (endMs > startMs) {
                        cues.add(VibCue(
                        startMs = startMs,
                        endMs = endMs,
-                       tag = VibTag.valueOf(tagStr),
+                       tag = tag,
                        params = params
                         ))
                     }
@@ -535,10 +541,14 @@ data class VibCue(
             }
             cues.sortBy { it.startMs }
 
-            android.util.Log.d(
-                "VibeSubManager",
-                "Loaded ${cues.size} vibration cues"
-            )
+            android.util.Log.d("VibeDebug", "Subtitle path: $path")
+            android.util.Log.d("VibeDebug", "Subtitle contents length: ${srtText.length}")
+            android.util.Log.d("VibeDebug", "Cues parsed: ${cues.size}")
+            if (cues.isNotEmpty()) {
+                android.util.Log.d("VibeDebug", "First parsed cue: ${cues[0]}")
+            } else {
+                android.util.Log.d("VibeDebug", "First parsed cue: None")
+            }
         }
     }
 
@@ -549,7 +559,7 @@ data class VibCue(
         } catch (e: Exception) {
             null
         }
-        text?.let { loadSrtText(it) }
+        text?.let { loadSrtText(it, uri.toString()) }
     }
 
 
@@ -613,6 +623,7 @@ data class VibCue(
     }
 
     private fun poll() {
+        android.util.Log.d("VibeDebug", "Poll running")
       
         if (!shouldAllowVibrate()) {
             cancelActiveVibration()
@@ -637,6 +648,7 @@ data class VibCue(
         }
 
         if (cue != null && playing) {
+            android.util.Log.d("VibeDebug", "Active cue found")
             val switched = activeCue?.let { it.startMs != cue.startMs || it.endMs != cue.endMs } ?: true
             if (switched) {
                 cancelActiveVibration()
@@ -656,8 +668,8 @@ data class VibCue(
     }
 
     private fun playPattern(cue:VibCue){
-
-    val p = cue.params
+        android.util.Log.d("VibeDebug", "playPattern called")
+        val p = cue.params
 
     when (cue.tag) {
 
