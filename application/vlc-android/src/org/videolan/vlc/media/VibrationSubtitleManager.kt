@@ -140,10 +140,10 @@ class VibrationSubtitleManager(
         METALLIC_HIT,
         ACCELERATION,
         POWERLOSS,
-        DISTANT_THUNDER
+        DISTANT_THUNDER,
 
         // Silence / System
-        SILENCE
+        SILENCE;
     }
 
 data class VibCue(
@@ -1688,6 +1688,10 @@ data class VibCue(
 
             VibTag.SILENCE -> {
                 android.util.Log.d("VibeSubManager", "Silence cue – no vibration")
+            }
+            else -> {
+                // Unhandled tag – no vibration or fallback
+                android.util.Log.d("VibeSubManager", "Unhandled VibTag: ${cue.tag}")
             }
         }
     }
